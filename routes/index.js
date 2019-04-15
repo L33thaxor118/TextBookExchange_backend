@@ -1,7 +1,7 @@
 module.exports = {
   initRoutes: (app, router) => {
     const homeRoute = router.route('/');
-    homeRoute.get((req, res) => res.send('Hello World\n'));
+    homeRoute.get((req, res) => res.send('Hello World v2\n'));
 
     app.use('/', router);
     /* Error handling middleware */
