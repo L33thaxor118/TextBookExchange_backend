@@ -4,6 +4,10 @@ module.exports = {
     homeRoute.get((req, res) => res.send('Hello World v2\n'));
 
     app.use('/', router);
+    require('./usersRoute')(app);
+    require('./booksRoute')(app);
+    require('./courseRoute')(app);
+
     /* Error handling middleware */
     // Any uncaught errors from any route will be processed here.
     app.use((err, req, res, next) => {
