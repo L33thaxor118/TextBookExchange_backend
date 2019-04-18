@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const { registerAsyncHandlers } = require('./util');
+const Book = require('../models/book');
 
 const booksRouter = Router({ mergeParams: true });
 registerAsyncHandlers(booksRouter);
@@ -18,6 +19,23 @@ const getBooksBySubjectAndNumber = async (req, res) => {
 
 };
 
+const createBook = async (req, res) => {
+  // const { title, isbn, courses } = req.body;
+
+  // const book = new Book({
+  //   title,
+  //   isbn,
+  //   courses,
+  // });
+
+  // const createdBook = await book.save();
+
+  // res.status(201).json({
+  //   message: 'OK created',
+  //   bookId: createdBook._id,
+  // });
+};
+
 const booksGetHandler = async (req, res) => {
   const { subject, course_num: courseNumber } = req.params;
 
@@ -34,7 +52,8 @@ const booksGetHandler = async (req, res) => {
 };
 
 booksRouter.asyncRoute('/')
-  .get(booksGetHandler);
+  .get(booksGetHandler)
+  .post(createBook);
 
 /* Begin /books/:id route */
 
@@ -44,6 +63,5 @@ const getBookById = async (req, res) => {
 
 booksRouter.asyncRoute('/:id')
   .get(getBookById);
-
 
 module.exports = router => router.use('/books', booksRouter);
