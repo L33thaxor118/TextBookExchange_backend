@@ -19,6 +19,7 @@
   },
   "homepage": "https://gitlab.com/cache-me-outside/textbook-exchange-backend#readme",
   "dependencies": {
+    "axios": "^0.18.0",
     "body-parser": "^1.18.3",
     "express": "^4.16.4",
     "mongoose": "^5.5.2",
