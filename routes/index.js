@@ -7,6 +7,7 @@ module.exports = {
     require('./usersRoute')(app);
     require('./booksRoute')(app);
     require('./courseRoute')(app);
+    require('./listingRoute')(app);
 
     /* Error handling middleware */
     // Any uncaught errors from any route will be processed here.
