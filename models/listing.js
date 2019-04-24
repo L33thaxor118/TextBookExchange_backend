@@ -2,7 +2,10 @@ var mongoose = require('mongoose');
 
 var ListingSchema = new mongoose.Schema({
   bookId: {type: mongoose.Schema.Types.ObjectId, required: true},
+  // Book title
   title: {type: String, required: true},
+  description: {type: String, default: ''},
+  imageNames: [String],
   condition: {
     type: String,
     required: true,
