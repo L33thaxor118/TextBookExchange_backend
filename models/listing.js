@@ -1,7 +1,8 @@
 var mongoose = require('mongoose');
 
 var ListingSchema = new mongoose.Schema({
-	isbn: {type: String, required: true},
+  bookId: {type: mongoose.Schema.Types.ObjectId, required: true},
+  title: {type: String, required: true},
   condition: {
     type: String,
     required: true,

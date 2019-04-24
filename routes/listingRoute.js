@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { registerAsyncHandlers,  notFoundMiddleware} = require('./util');
+const { registerAsyncHandlers, notFoundMiddleware, lookupBookByISBN } = require('./util');
 
 const Listing = require('../models/listing');
 const Book = require('../models/book');
@@ -18,11 +18,11 @@ const getAllListings = async (req, res) => {
 }
 
 const createListing = async (req, res) => {
-  const { isbn, condition, userId, price, exchangeBook } = req.body;
+  const { bookId, condition, userId, price, exchangeBook } = req.body;
 
-  if (![isbn, condition, userId].every(Boolean)) {
+  if (![bookId, condition, userId].every(Boolean)) {
 	  return res.status(400).json({
-      message: 'Missing parameter (isbn, condition or userId) in request body',
+      message: 'Missing parameter (bookId, condition or userId) in request body',
     });  
   }
 
@@ -34,10 +34,10 @@ const createListing = async (req, res) => {
   }
 
   // Check that the book exists in the database
-  const book = await Book.findOne({isbn: isbn});
+  const book = await Book.findById(bookId);
   if (!book) {
 	  return res.status(400).json({
-      message:`No book found with isbn ${isbn}.`
+      message:`No book found with id ${bookId}.`
     });
   }
 
@@ -68,10 +68,11 @@ const createListing = async (req, res) => {
   }
 
   const listing = new Listing({
-    isbn: isbn,
-    condition: condition,
-    price: price,
-    exchangeBook: exchangeBook,
+    bookId,
+    condition,
+    price,
+    exchangeBook,
+    title: book.title,
     assignedUserId: userId
   });
 
