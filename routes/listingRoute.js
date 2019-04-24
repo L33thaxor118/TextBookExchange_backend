@@ -18,7 +18,15 @@ const getAllListings = async (req, res) => {
 }
 
 const createListing = async (req, res) => {
-  const { bookId, condition, userId, price, exchangeBook } = req.body;
+  const {
+    bookId,
+    condition,
+    description,
+    userId,
+    price,
+    exchangeBook,
+    imageNames,
+  } = req.body;
 
   if (![bookId, condition, userId].every(Boolean)) {
 	  return res.status(400).json({
@@ -49,12 +57,10 @@ const createListing = async (req, res) => {
     });
   }
 
-  if (price) {
-  	if (price < 0) {
-      return res.status(400).json({
-        message:`Invalid price: must be greater than 0.`
-      });
-    }
+  if (price && price < 0) {
+    return res.status(400).json({
+      message:`Invalid price: must be greater than 0.`
+    });
   }
 
   if (exchangeBook) {
@@ -70,6 +76,8 @@ const createListing = async (req, res) => {
   const listing = new Listing({
     bookId,
     condition,
+    description,
+    imageNames,
     price,
     exchangeBook,
     title: book.title,
@@ -111,24 +119,23 @@ const deleteListingById = async (req, res, listing) => {
 };
 
 const updateListingById = async (req, res, listing) => {
-  const { id } = req.params; 
-  const { price, exchangeBook, statusCompleted } = req.body;
+  const { price, exchangeBook } = req.body;
+  const fields = ['price', 'exchangeBook', 'statusCompleted', 'imageNames', 'description'];
 
-  if (![price, exchangeBook, statusCompleted].some(Boolean)) {
+  if (!fields.map(f => req.body[f]).some(Boolean)) {
 	  return res.status(400).json({
       message: 'No parameter provided in request body',
     });  
   }
 
-  if (price) {
-  	if (price < 0) {
-		  return res.status(400).json({
-        message:`Invalid price: must be greater than 0.`
-			});
-	  }
+  if (price && price < 0) {
+    return res.status(400).json({
+      message:`Invalid price: must be greater than 0.`
+    });
   }
 
   if (exchangeBook) {
+    const { exchangeBook } = req.body;
 	  // Check that the exchangeBook exists in the database
 	  const exBook = await Book.findOne({isbn: exchangeBook});
 	  if (!exBook) {
@@ -138,25 +145,11 @@ const updateListingById = async (req, res, listing) => {
 	  }
   }
 
-  if (statusCompleted) {
-  	if (!(statusCompleted === 'true' || statusCompleted === 'false')) {
-      return res.status(400).json({
-        message:`Invalid statusCompleted: must be a Boolean.`
-      });
+  fields.forEach(field => {
+    if (req.body[field]) {
+      listing[field] = req.body[field];
     }
-  }
-
-  if (price) {
-  	listing.price = price;
-  }
-
-  if (exchangeBook) {
-  	listing.exchangeBook = exchangeBook;
-  }
-
-  if (statusCompleted) {
-  	listing.statusCompleted = statusCompleted;
-  }
+  });
 
   const updatedListing = await listing.save();
   res.status(200).json({
