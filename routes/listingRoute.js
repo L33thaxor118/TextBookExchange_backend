@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { registerAsyncHandlers, notFoundMiddleware, lookupBookByISBN } = require('./util');
+const { registerAsyncHandlers, notFoundMiddleware } = require('./util');
 
 const Listing = require('../models/listing');
 const Book = require('../models/book');
@@ -10,12 +10,24 @@ registerAsyncHandlers(listingsRouter);
 
 const wrapNotFound = notFoundMiddleware(Listing);
 
+// .populate() is essentially a JOIN operation that mongoose provides
+const listingPopulateOpts = [
+  { path: 'book', select: '-courses', model: 'Book' },
+  { path: 'assignedUser', select: '-listings', model: 'User' },
+  { path: 'exchangeBook', select: '-courses', model: 'Book' },
+];
+
+const fetchListingAndPopulate = id => {
+  if (id) {
+    return Listing.findById(id).populate(listingPopulateOpts);
+  } else {
+    return Listing.find({}).populate(listingPopulateOpts);
+  }
+};
+
 /* Begin /listings route */
 
-const getAllListings = async (req, res) => {
-  const listings = await Listing.find({});
-  return res.json({listings});
-}
+const getAllListings = async (req, res) => res.json({ listings: await fetchListingAndPopulate() });
 
 const createListing = async (req, res) => {
   const {
@@ -45,7 +57,7 @@ const createListing = async (req, res) => {
   const book = await Book.findById(bookId);
   if (!book) {
     return res.status(400).json({
-      message:`No book found with id ${bookId}.`
+      message: `No book found with id ${bookId}.`
     });
   }
 
@@ -53,13 +65,13 @@ const createListing = async (req, res) => {
   const user = await User.findOne({firebaseId: userId});
   if (!user) {
     return res.status(400).json({
-      message:`No user found with firebaseId ${userId}.`
+      message: `No user found with firebaseId ${userId}.`
     });
   }
 
   if (price && price < 0) {
     return res.status(400).json({
-      message:`Invalid price: must be greater than 0.`
+      message: `Invalid price: must be greater than 0.`
     });
   }
 
@@ -68,23 +80,22 @@ const createListing = async (req, res) => {
     const exBook = await Book.findOne({isbn: exchangeBook});
     if (!exBook) {
       return res.status(400).json({
-        message:`No exchange book found with isbn ${exchangeBook}.`
+        message: `No exchange book found with isbn ${exchangeBook}.`
       });
     }
   }
 
   const listing = new Listing({
-    bookId,
+    book: bookId,
     condition,
     description,
     imageNames,
     price,
     exchangeBook,
-    title: book.title,
-    assignedUserId: userId
+    assignedUser: userId
   });
 
-  const createdListing = await listing.save();
+  const { id } = await listing.save();
 
   // Add new listing's id to assigned user's listings list
   user.listings.push(createdListing._id);
@@ -92,7 +103,7 @@ const createListing = async (req, res) => {
 
   return res.status(201).json({
     message: 'OK created',
-    listing: createdListing
+    listing: await fetchListingAndPopulate(id),
   });
 }
 
@@ -102,11 +113,11 @@ listingsRouter.asyncRoute('/')
 
 /* Begin /listings/:id route */
 
-const getListingById = (req, res, listing) => res.status(200).json({ listing });
+const getListingById = async (req, res) => res.status(200).json({ listing: await fetchListingAndPopulate(req.params.id) });
 
 const deleteListingById = async (req, res, listing) => {
   const { id } = req.params;
-  const userId = listing.assignedUserId;
+  const userId = listing.assignedUser;
   const user = await User.findOne({firebaseId: userId});
 
   await Listing.deleteOne({_id: id});
@@ -119,6 +130,7 @@ const deleteListingById = async (req, res, listing) => {
 };
 
 const updateListingById = async (req, res, listing) => {
+  const { id } = req.params;
   const { price, exchangeBook } = req.body;
   const fields = ['price', 'exchangeBook', 'statusCompleted', 'imageNames', 'description'];
 
@@ -137,10 +149,10 @@ const updateListingById = async (req, res, listing) => {
   if (exchangeBook) {
     const { exchangeBook } = req.body;
     // Check that the exchangeBook exists in the database
-    const exBook = await Book.findOne({isbn: exchangeBook});
+    const exBook = await Book.findById(exchangeBook);
     if (!exBook) {
       return res.status(400).json({
-        message:`No exchange book found with isbn ${exchangeBook}.`
+        message:`No exchange book found with id ${exchangeBook}.`
       });
     }
   }
@@ -151,10 +163,11 @@ const updateListingById = async (req, res, listing) => {
     }
   });
 
-  const updatedListing = await listing.save();
+  await listing.save();
+
   res.status(200).json({
     message: 'Successfully updated listing',
-    book: updatedListing,
+    book: await fetchListingAndPopulate(id),
   });
 };
 

@@ -18,9 +18,11 @@ registerAsyncHandlers(booksRouter);
 const wrapNotFound = notFoundMiddleware(Book);
 const wrapUniqueIsbn = uniqueDocumentMiddleware(Book, 'isbn');
 
+const fetchBookAndPopulate = id => Book.findById(id).populate({ path: 'courses', model: Course, select: '-books' });
+
 /* Begin /books route */
 
-const getAllBooks = () => Book.find({});
+const getAllBooks = () => Book.find({}).populate({ path: 'courses', model: Course, select: '-books'});
 
 const getBooksByCourse = async (subject, courseNumber) => {
   let query = Course.where('department').equals(subject);
@@ -37,7 +39,7 @@ const getBooksByCourse = async (subject, courseNumber) => {
     courses.forEach(course => course.books.forEach(bookIds.add.bind(bookIds)));
   }
 
-  return Promise.all([...bookIds].map(id => Book.findById(id)));
+  return Promise.all([...bookIds].map(fetchBookAndPopulate));
 };
 
 const booksGetHandler = async (req, res) => {
@@ -116,7 +118,7 @@ const createBook = wrapUniqueIsbn(async (req, res) => {
 
     res.status(201).json({
       message: 'OK created',
-      book: createdBook,
+      book: await fetchBookAndPopulate(id),
     });
   } else {
     res.status(400).json({
@@ -131,12 +133,14 @@ booksRouter.asyncRoute('/')
 
 /* Begin /books/:id route */
 
-const getBookById = (req, res, book) => res.status(200).json({ book });
+const getBookById = async (req, res) => res.status(200).json({
+  book: await fetchBookAndPopulate(req.params.id),
+});
 
 const updateBookById = async (req, res, existingBook) => {
   // Only allow the courses field to be updated
   const { courses } = req.body;
-  const id = existingBook.id;
+  const { id } = existingBook;
 
   if (courses) {
     // Only modify course documents if all of them are valid
@@ -150,11 +154,11 @@ const updateBookById = async (req, res, existingBook) => {
 
     if (success) {
       existingBook.courses = courses;
-      const updatedBook = await existingBook.save();
+      await existingBook.save();
       
       res.status(200).json({
         message: 'Successfully updated book',
-        book: updatedBook,
+        book: await fetchBookAndPopulate(id),
       });
     } else {
       res.status(400).json({
@@ -164,7 +168,7 @@ const updateBookById = async (req, res, existingBook) => {
   } else {
     res.status(200).json({
       message: 'OK',
-      book: existingBook,
+      book: await fetchBookAndPopulate(id),
     });
   }
 };

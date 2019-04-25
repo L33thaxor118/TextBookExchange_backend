@@ -1,9 +1,7 @@
 var mongoose = require('mongoose');
 
 var ListingSchema = new mongoose.Schema({
-  bookId: {type: mongoose.Schema.Types.ObjectId, required: true},
-  // Book title
-  title: {type: String, required: true},
+  book: {type: mongoose.Schema.Types.ObjectId, required: true},
   description: {type: String, default: ''},
   imageNames: [String],
   condition: {
@@ -18,10 +16,10 @@ var ListingSchema = new mongoose.Schema({
     ]
   },
   price: {type: Number, min: 0, default: 0},
-  exchangeBook: {type: String, default: ''},
+  exchangeBook: mongoose.Schema.Types.ObjectId,
   statusCompleted: {type: Boolean, default: false},
   dateCreated: {type: Date, default: Date.now},
-  assignedUserId: {type: String, required: true} 
+  assignedUser: {type: mongoose.Schema.Types.ObjectId, required: true} 
 }, { versionKey: false });
 
 module.exports = mongoose.model('Listing', ListingSchema);
