@@ -98,7 +98,7 @@ const createListing = async (req, res) => {
   const { id } = await listing.save();
 
   // Add new listing's id to assigned user's listings list
-  user.listings.push(createdListing._id);
+  user.listings.push(id);
   await user.save();
 
   return res.status(201).json({
