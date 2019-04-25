@@ -102,8 +102,22 @@ const notFoundMiddleware = Model => handler => async (req, res, ...rest) => {
   }
 };
 
+const uniqueDocumentMiddleware = (Model, key, bodyKey) => handler => async (req, res, ...rest) => {
+  let requestValue = req.body[bodyKey || key];
+  const document = await Model.findOne({[key]: requestValue});
+  if (document) {
+    res.status(400).json({
+      errorType: 'DUPLICATE_DOCUMENT',
+      message: `A document with key ${key}=${requestValue} already exists.`
+    });
+  } else {
+    return handler(req, res, ...rest);
+  }
+};
+
 module.exports = {
   modifyAllOrNone,
   notFoundMiddleware,
   registerAsyncHandlers,
+  uniqueDocumentMiddleware,
 };
