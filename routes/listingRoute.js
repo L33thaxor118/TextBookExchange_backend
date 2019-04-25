@@ -62,10 +62,10 @@ const createListing = async (req, res) => {
   }
 
   // Check that user exists in the database
-  const user = await User.findOne({firebaseId: userId});
+  const user = await User.findById(userId);
   if (!user) {
     return res.status(400).json({
-      message: `No user found with firebaseId ${userId}.`
+      message: `No user found with id ${userId}.`
     });
   }
 
