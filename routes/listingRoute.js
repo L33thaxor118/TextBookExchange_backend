@@ -13,8 +13,8 @@ const wrapNotFound = notFoundMiddleware(Listing);
 /* Begin /listings route */
 
 const getAllListings = async (req, res) => {
-	const listings = await Listing.find({});
-	return res.json({listings});
+  const listings = await Listing.find({});
+  return res.json({listings});
 }
 
 const createListing = async (req, res) => {
@@ -29,14 +29,14 @@ const createListing = async (req, res) => {
   } = req.body;
 
   if (![bookId, condition, userId].every(Boolean)) {
-	  return res.status(400).json({
+    return res.status(400).json({
       message: 'Missing parameter (bookId, condition or userId) in request body',
     });  
   }
 
   // Check that at least one of price or exchangeBook is given
   if (!(price || exchangeBook)) {
-	  return res.status(400).json({
+    return res.status(400).json({
       message: 'Missing price or exchangeBook parameter in request body',
     });
   }
@@ -44,7 +44,7 @@ const createListing = async (req, res) => {
   // Check that the book exists in the database
   const book = await Book.findById(bookId);
   if (!book) {
-	  return res.status(400).json({
+    return res.status(400).json({
       message:`No book found with id ${bookId}.`
     });
   }
@@ -52,7 +52,7 @@ const createListing = async (req, res) => {
   // Check that user exists in the database
   const user = await User.findOne({firebaseId: userId});
   if (!user) {
-	  return res.status(400).json({
+    return res.status(400).json({
       message:`No user found with firebaseId ${userId}.`
     });
   }
@@ -64,13 +64,13 @@ const createListing = async (req, res) => {
   }
 
   if (exchangeBook) {
-	  // Check that the exchangeBook exists in the database
-	  const exBook = await Book.findOne({isbn: exchangeBook});
-	  if (!exBook) {
+    // Check that the exchangeBook exists in the database
+    const exBook = await Book.findOne({isbn: exchangeBook});
+    if (!exBook) {
       return res.status(400).json({
         message:`No exchange book found with isbn ${exchangeBook}.`
       });
-	  }
+    }
   }
 
   const listing = new Listing({
@@ -123,7 +123,7 @@ const updateListingById = async (req, res, listing) => {
   const fields = ['price', 'exchangeBook', 'statusCompleted', 'imageNames', 'description'];
 
   if (!fields.map(f => req.body[f]).some(Boolean)) {
-	  return res.status(400).json({
+    return res.status(400).json({
       message: 'No parameter provided in request body',
     });  
   }
@@ -136,13 +136,13 @@ const updateListingById = async (req, res, listing) => {
 
   if (exchangeBook) {
     const { exchangeBook } = req.body;
-	  // Check that the exchangeBook exists in the database
-	  const exBook = await Book.findOne({isbn: exchangeBook});
-	  if (!exBook) {
-		  return res.status(400).json({
+    // Check that the exchangeBook exists in the database
+    const exBook = await Book.findOne({isbn: exchangeBook});
+    if (!exBook) {
+      return res.status(400).json({
         message:`No exchange book found with isbn ${exchangeBook}.`
       });
-	  }
+    }
   }
 
   fields.forEach(field => {

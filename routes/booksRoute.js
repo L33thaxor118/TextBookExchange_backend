@@ -1,6 +1,11 @@
 const { Router } = require('express');
 const axios = require('axios');
-const { modifyAllOrNone, notFoundMiddleware, registerAsyncHandlers } = require('./util');
+const {
+  modifyAllOrNone,
+  notFoundMiddleware,
+  registerAsyncHandlers,
+  uniqueDocumentMiddleware,
+} = require('./util');
 const Book = require('../models/book');
 const Course = require('../models/course');
 
@@ -9,7 +14,9 @@ const lookupBookByISBN = isbn => axios.get('https://www.googleapis.com/books/v1/
 const booksRouter = Router({ mergeParams: true });
 registerAsyncHandlers(booksRouter);
 
+/* Middleware */
 const wrapNotFound = notFoundMiddleware(Book);
+const wrapUniqueIsbn = uniqueDocumentMiddleware(Book, 'isbn');
 
 /* Begin /books route */
 
@@ -58,7 +65,7 @@ const booksGetHandler = async (req, res) => {
   }
 };
 
-const createBook = async (req, res) => {
+const createBook = wrapUniqueIsbn(async (req, res) => {
   const { isbn, courses = [] } = req.body;
 
   const bookInfo = await lookupBookByISBN(isbn);
@@ -68,18 +75,23 @@ const createBook = async (req, res) => {
     // TODO: allow user to input their own book data in the case
     // that a book is not recognized
     return res.status(400).json({
-      message: 'INVALID_ISBN',
-      data: `Invalid ISBN '${isbn}' provided.`
+      errorType: 'INVALID_ISBN',
+      message: `Invalid ISBN '${isbn}' provided.`
     });
   }
 
+  let { title, subtitle, authors } = bookInfo.items[0].volumeInfo; 
+
   // If the book exists, extract the title
-  const title = bookInfo.items[0].volumeInfo.title;
+  if (subtitle) {
+    title += `: ${subtitle}`;
+  }
 
   const book = new Book({
     isbn,
     title,
-    courses
+    courses,
+    authors
   });
 
   // Check that all courses already exist in the database before proceeding
@@ -104,14 +116,14 @@ const createBook = async (req, res) => {
 
     res.status(201).json({
       message: 'OK created',
-      bookId: id,
+      book: createdBook,
     });
   } else {
     res.status(400).json({
       message: `No course found with ID ${missingDocumentId}.`
     });
   }
-};
+});
 
 booksRouter.asyncRoute('/')
   .get(booksGetHandler)
