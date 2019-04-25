@@ -5,7 +5,7 @@ var CourseSchema = new mongoose.Schema({
   number: {type: String, required: true},
   title: {type: String, required: true},
   // Books should be a list of MongoIDs
-  books: {type: [String], default: []},
+  books: [mongoose.Schema.Types.ObjectId],
 }, { versionKey: false });
 
 module.exports = mongoose.model('Course', CourseSchema);
