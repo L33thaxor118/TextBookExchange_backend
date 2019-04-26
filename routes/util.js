@@ -92,9 +92,10 @@ const modifyAllOrNone = async options => {
  * 
  * @param {Model} Model Mongo collection to query over
  */
-const notFoundMiddleware = Model => handler => async (req, res, ...rest) => {
+const notFoundMiddleware = (Model, idKey) => handler => async (req, res, ...rest) => {
   const { id } = req.params;
-  const document = await Model.findById(id);
+  const document = await (!idKey ? Model.findById(id) : Model.findOne({[idKey]: id}));
+  
   if (!document) {
     res.status(404).end();
   } else {

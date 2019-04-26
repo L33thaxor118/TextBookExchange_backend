@@ -13,15 +13,35 @@ const wrapNotFound = notFoundMiddleware(Listing);
 // .populate() is essentially a JOIN operation that mongoose provides
 const listingPopulateOpts = [
   { path: 'book', select: '-courses', model: 'Book' },
-  { path: 'assignedUser', select: '-listings', model: 'User' },
   { path: 'exchangeBook', select: '-courses', model: 'Book' },
 ];
 
-const fetchListingAndPopulate = id => {
+const fetchListingAndPopulate = async id => {
   if (id) {
-    return Listing.findById(id).populate(listingPopulateOpts);
+    const listing = await Listing.findById(id)
+      .populate(listingPopulateOpts)
+      .lean();
+
+    return {
+      ...listing,
+      assignedUser: await User.findOne({firebaseId: listing.assignedUser})
+    };
   } else {
-    return Listing.find({}).populate(listingPopulateOpts);
+    const listings = await Listing.find({})
+      .populate(listingPopulateOpts)
+      .lean();
+
+    return new Promise(async resolve => {
+      const joinedListings = [];
+      for (let listing of listings) {
+        joinedListings.push({
+          ...listing,
+          assignedUser: await User.findOne({firebaseId: listing.assignedUser})
+        });
+      }
+
+      resolve(joinedListings);
+    });
   }
 };
 
@@ -62,10 +82,10 @@ const createListing = async (req, res) => {
   }
 
   // Check that user exists in the database
-  const user = await User.findById(userId);
+  const user = await User.findOne({ firebaseId: userId });
   if (!user) {
     return res.status(400).json({
-      message: `No user found with id ${userId}.`
+      message: `No user found with firebase id ${userId}.`
     });
   }
 
@@ -77,10 +97,10 @@ const createListing = async (req, res) => {
 
   if (exchangeBook) {
     // Check that the exchangeBook exists in the database
-    const exBook = await Book.findOne({isbn: exchangeBook});
+    const exBook = await Book.findById(exchangeBook);
     if (!exBook) {
       return res.status(400).json({
-        message: `No exchange book found with isbn ${exchangeBook}.`
+        message: `No exchange book found with id ${exchangeBook}.`
       });
     }
   }

@@ -19,7 +19,8 @@ var ListingSchema = new mongoose.Schema({
   exchangeBook: mongoose.Schema.Types.ObjectId,
   statusCompleted: {type: Boolean, default: false},
   dateCreated: {type: Date, default: Date.now},
-  assignedUser: {type: mongoose.Schema.Types.ObjectId, required: true} 
+  // Firebase id
+  assignedUser: {type: String, required: true} 
 }, { versionKey: false });
 
 module.exports = mongoose.model('Listing', ListingSchema);

@@ -4,7 +4,7 @@ const User = require('../models/user');
 const Listing = require('../models/listing');
 
 const usersRouter = Router({ mergeParams: true });
-const wrapNotFound = notFoundMiddleware(User);
+const wrapNotFound = notFoundMiddleware(User, 'firebaseId');
 
 // This allows us to use async / await with the route handlers
 registerAsyncHandlers(usersRouter);
