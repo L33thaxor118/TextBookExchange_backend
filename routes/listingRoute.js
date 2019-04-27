@@ -21,10 +21,12 @@ const fetchListingAndPopulate = async id => {
     const listing = await Listing.findById(id)
       .populate(listingPopulateOpts)
       .lean();
+    
+    const { listings, ...user } = await User.findOne({firebaseId: listing.assignedUser}).lean() || {};
 
     return {
       ...listing,
-      assignedUser: await User.findOne({firebaseId: listing.assignedUser})
+      assignedUser: user
     };
   } else {
     const listings = await Listing.find({})
@@ -34,9 +36,10 @@ const fetchListingAndPopulate = async id => {
     return new Promise(async resolve => {
       const joinedListings = [];
       for (let listing of listings) {
+        const { listings, ...user } = await User.findOne({firebaseId: listing.assignedUser}).lean();
         joinedListings.push({
           ...listing,
-          assignedUser: await User.findOne({firebaseId: listing.assignedUser})
+          assignedUser: user,
         });
       }
 
