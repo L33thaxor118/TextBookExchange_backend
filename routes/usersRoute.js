@@ -2,6 +2,7 @@ const { Router } = require('express');
 const { registerAsyncHandlers, notFoundMiddleware } = require('./util');
 const User = require('../models/user');
 const Listing = require('../models/listing');
+const Book = require('../models/book')
 
 const usersRouter = Router({ mergeParams: true });
 const wrapNotFound = notFoundMiddleware(User, 'firebaseId');
@@ -62,8 +63,36 @@ const deleteUserById = async (req, res, user) => {
   res.json({ user });
 };
 
+// PUT /users/:id
+const updateUserById = async (req, res, user) => {
+  const { id } = req.params;
+  const { bookIds } = req.body;
+  
+  // check that books are in the database
+  if (bookIds) {
+    for (let id of bookIds) {
+      const book = await Book.findById(id);
+      if (!book) {
+        return res.status(400).json({
+          message: `Wishlist not valid: no book found with id ${id}.`
+      });
+      }
+    } 
+  }
+
+  user['wishlist'] = bookIds;
+  await user.save();
+  return res.status(200).json({
+    message: 'Successfully updated user',
+    user: user,
+  });
+
+};
+
+
 usersRouter.asyncRoute('/:id')
   .get(wrapNotFound(getUserById))
-  .delete(wrapNotFound(deleteUserById));
+  .delete(wrapNotFound(deleteUserById))
+  .put(wrapNotFound(updateUserById));
 
 module.exports = router => router.use('/users', usersRouter);
