@@ -68,21 +68,23 @@ const booksGetHandler = async (req, res) => {
 };
 
 const createBook = wrapUniqueIsbn(async (req, res) => {
-  const { isbn, courses = [] } = req.body;
+  const { isbn, courses = [], authors = [] } = req.body;
 
   const bookInfo = await lookupBookByISBN(isbn);
 
   // Check that the Google API recognizes the ISBN
   if (bookInfo.totalItems < 1) {
-    // TODO: allow user to input their own book data in the case
-    // that a book is not recognized
+    return manualCreateBook(req, res);
+  } else if (req.body.title || authors.length) {
+    // User provided a valid ISBN but provided title and/or authors field
+    // which is not allowed, since we will be populating those fields here
     return res.status(400).json({
-      errorType: 'INVALID_ISBN',
-      message: `Invalid ISBN '${isbn}' provided.`
+      errorType: 'UNEXPECTED_ARGUMENT',
+      message: `Received unexpected argument '${req.body.title ? 'title' : 'authors'}' for book with valid ISBN.`
     });
   }
 
-  let { title, subtitle, authors } = bookInfo.items[0].volumeInfo; 
+  let { title, subtitle, authors: foundAuthors } = bookInfo.items[0].volumeInfo; 
 
   // If the book exists, extract the title
   if (subtitle) {
@@ -93,8 +95,50 @@ const createBook = wrapUniqueIsbn(async (req, res) => {
     isbn,
     title,
     courses,
-    authors
+    authors: foundAuthors
   });
+
+  await createAndSaveBook(res, book);
+});
+
+const manualCreateBook = async (req, res) => {
+  const { isbn, title, courses = [], authors = [] } = req.body;
+  // If the user only provides an isbn field and it is invalid,
+  // return an error
+  if (isbn && !title && !authors.length) {
+    return res.status(400).json({
+      errorType: 'INVALID_ISBN',
+      message: `Invalid ISBN '${isbn}' provided.`
+    });
+  }
+
+  // Otherwise, we assume the user is attempting to create a new book,.
+  // If the request is missing any of the required book fields, we return an error.
+  const expectedFields = [
+    {field: isbn, errorType: 'MISSING_ISBN', message: 'Missing required field \'isbn\''},
+    {field: title, errorType: 'MISSING_TITLE', message: 'Missing required field \'title\''},
+    {field: authors.length, errorType: 'MISSING_AUTHORS', message: 'Missing required field \'authors\''},
+  ];
+
+  for (let { field, errorType, message } of expectedFields) {
+    if (!field) {
+      return res.status(400).json({ errorType, message });
+    }
+  }
+
+  // Otherwise create and save the book
+  const book = new Book({
+    isbn,
+    title,
+    courses,
+    authors,
+  });
+
+  await createAndSaveBook(res, book);
+};
+
+const createAndSaveBook = async (res, book) => {
+  const courses = book.courses;
 
   // Check that all courses already exist in the database before proceeding
   const { success, execUpdates, missingDocumentId } = await modifyAllOrNone({
@@ -125,7 +169,7 @@ const createBook = wrapUniqueIsbn(async (req, res) => {
       message: `No course found with ID ${missingDocumentId}.`
     });
   }
-});
+};
 
 booksRouter.asyncRoute('/')
   .get(booksGetHandler)
