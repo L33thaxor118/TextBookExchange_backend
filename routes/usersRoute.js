@@ -79,8 +79,10 @@ const updateUserById = async (req, res, user) => {
       }
     } 
   }
+  // Remove duplicates
+  var newWishlist = [...new Set(wishlist)];
 
-  user['wishlist'] = wishlist;
+  user['wishlist'] = newWishlist;
   await user.save();
   return res.status(200).json({
     message: 'Successfully updated user',
