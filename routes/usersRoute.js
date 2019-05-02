@@ -66,11 +66,11 @@ const deleteUserById = async (req, res, user) => {
 // PUT /users/:id
 const updateUserById = async (req, res, user) => {
   const { id } = req.params;
-  const { bookIds } = req.body;
+  const { wishlist } = req.body;
   
   // check that books are in the database
-  if (bookIds) {
-    for (let id of bookIds) {
+  if (wishlist) {
+    for (let id of wishlist) {
       const book = await Book.findById(id);
       if (!book) {
         return res.status(400).json({
@@ -80,7 +80,7 @@ const updateUserById = async (req, res, user) => {
     } 
   }
 
-  user['wishlist'] = bookIds;
+  user['wishlist'] = wishlist;
   await user.save();
   return res.status(200).json({
     message: 'Successfully updated user',
