@@ -190,7 +190,7 @@ const updateListingById = async (req, res, listing) => {
   }
 
   fields.forEach(field => {
-    if (req.body[field]) {
+    if (req.body[field] != null) {
       listing[field] = req.body[field];
     }
   });
