@@ -166,7 +166,7 @@ const updateListingById = async (req, res, listing) => {
   const { price, exchangeBook } = req.body;
   const fields = ['price', 'exchangeBook', 'statusCompleted', 'imageNames', 'description'];
 
-  if (!fields.map(f => req.body[f]).some(Boolean)) {
+  if (!fields.map(f => req.body[f] != null).some(Boolean)) {
     return res.status(400).json({
       message: 'No parameter provided in request body',
     });  
