@@ -16,7 +16,8 @@ const listingPopulateOpts = [
   { path: 'exchangeBook', select: '-courses', model: 'Book' },
 ];
 
-const fetchListingAndPopulate = async id => {
+const fetchListingAndPopulate = async (opts = {}) => {
+  const { id, userId } = opts;
   if (id) {
     const listing = await Listing.findById(id)
       .populate(listingPopulateOpts)
@@ -29,28 +30,36 @@ const fetchListingAndPopulate = async id => {
       assignedUser: user
     };
   } else {
-    const listings = await Listing.find({})
+    const qualifiers = userId ? { assignedUser: userId } : {};
+
+    const listings = await Listing.find(qualifiers)
       .populate(listingPopulateOpts)
       .lean();
+    
+    if (!userId) {
+      return new Promise(async resolve => {
+        const joinedListings = [];
+        for (let listing of listings) {
+          const { listings, ...user } = await User.findOne({firebaseId: listing.assignedUser}).lean();
+          joinedListings.push({
+            ...listing,
+            assignedUser: user,
+          });
+        }
 
-    return new Promise(async resolve => {
-      const joinedListings = [];
-      for (let listing of listings) {
-        const { listings, ...user } = await User.findOne({firebaseId: listing.assignedUser}).lean();
-        joinedListings.push({
-          ...listing,
-          assignedUser: user,
-        });
-      }
-
-      resolve(joinedListings);
-    });
+        resolve(joinedListings);
+      });
+    } else {
+      return listings;
+    }
   }
 };
 
 /* Begin /listings route */
 
-const getAllListings = async (req, res) => res.json({ listings: await fetchListingAndPopulate() });
+const getAllListings = async (req, res) => {
+  res.json({ listings: await fetchListingAndPopulate({ userId: req.query.userId }) });
+};
 
 const createListing = async (req, res) => {
   const {
@@ -126,7 +135,7 @@ const createListing = async (req, res) => {
 
   return res.status(201).json({
     message: 'OK created',
-    listing: await fetchListingAndPopulate(id),
+    listing: await fetchListingAndPopulate({ id }),
   });
 }
 
@@ -136,7 +145,7 @@ listingsRouter.asyncRoute('/')
 
 /* Begin /listings/:id route */
 
-const getListingById = async (req, res) => res.status(200).json({ listing: await fetchListingAndPopulate(req.params.id) });
+const getListingById = async (req, res) => res.status(200).json({ listing: await fetchListingAndPopulate({ id: req.params.id }) });
 
 const deleteListingById = async (req, res, listing) => {
   const { id } = req.params;
@@ -190,7 +199,7 @@ const updateListingById = async (req, res, listing) => {
 
   res.status(200).json({
     message: 'Successfully updated listing',
-    book: await fetchListingAndPopulate(id),
+    book: await fetchListingAndPopulate({ id }),
   });
 };
 
