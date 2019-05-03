@@ -199,7 +199,7 @@ const updateListingById = async (req, res, listing) => {
 
   res.status(200).json({
     message: 'Successfully updated listing',
-    book: await fetchListingAndPopulate({ id }),
+    listing: await fetchListingAndPopulate({ id }),
   });
 };
 
